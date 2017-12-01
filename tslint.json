@@ -1,0 +1,12 @@
+{
+	"extends": "tslint:latest",
+	"rules": {
+		"forin": false,
+		"quotemark": [true, "single",	"avoid-escape"],
+		"no-console": [false],
+		"member-access": [false],
+		"max-classes-per-file": [false],
+		"no-bitwise": false,
+		"prefer-conditional-expression": false
+	}
+}
