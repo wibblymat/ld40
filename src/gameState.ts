@@ -1,18 +1,25 @@
-import { addBanner } from './banner';
+import { addBanner, addTopBanner } from './banner';
 import Entity from './entity';
 import { EntityType } from './entityType';
 import { getLevel, Level } from './levels';
 import { v2 } from './maths';
 
+export enum WeaponType {
+  Gun,
+  Grenade,
+}
+
 export const entities: Set<Entity> = new Set();
 export let player: Entity;
 export let level: Level;
 export let paused = false;
+export const weaponsAvailable: WeaponType[] = [WeaponType.Gun];
 export const debuffs = {
   doubleDamage: false,
   fastMonsters: false,
   noHeal: false,
   slowRegen: false,
+  undead: false,
 };
 
 let currentLevelId = 0;
@@ -45,6 +52,9 @@ export function addDebuff() {
   if (!debuffs.slowRegen) {
     available.push('slowRegen');
   }
+  if (!debuffs.undead) {
+    available.push('undead');
+  }
 
   const choice = Math.floor(Math.random() * available.length);
 
@@ -69,11 +79,16 @@ export function addDebuff() {
       addBanner('Curse: Ammo regen 50%', 50);
       break;
     }
+    case 'undead': {
+      debuffs.undead = true;
+      addBanner(`Curse: Enemies don't stay dead`, 45);
+      break;
+    }
   }
 }
 
 export function changeLevel(id: number) {
-  addBanner(`Level ${id + 1}`, 80);
+  addTopBanner(`Level ${id + 1}`, 80);
   if (id === 0) {
     addBanner('A,  D to move', 30);
     addBanner('Space to jump', 30);
@@ -87,6 +102,7 @@ export function changeLevel(id: number) {
   debuffs.fastMonsters = false;
   debuffs.noHeal = false;
   debuffs.slowRegen = false;
+  debuffs.undead = false;
 
   currentLevelId = id;
   level = getLevel(id);

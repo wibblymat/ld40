@@ -6,6 +6,9 @@ export enum Key {
   Right = 39,
   Down = 40,
 
+  One = 49,
+  Two = 50,
+
   A = 65,
   D = 68,
   P = 80,

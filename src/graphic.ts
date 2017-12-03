@@ -22,11 +22,11 @@ function getCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRen
   return [canvas, context];
 }
 
-function makeGoblinGraphic(): HTMLCanvasElement {
+function makeGoblinGraphic(color: string): HTMLCanvasElement {
   const [canvas, context] = getCanvas(20, 20);
 
   context.translate(10, 10);
-  context.fillStyle = 'orange';
+  context.fillStyle = color;
   context.strokeStyle = 'white';
   context.beginPath();
   context.arc(0, 0, 8, 0, Math.PI * 2, false);
@@ -74,6 +74,29 @@ function makeProjectileGraphic() {
   context.beginPath();
   context.arc(4, 4, 4, 0, Math.PI * 2, false);
   context.fill();
+  context.stroke();
+
+  return canvas;
+}
+
+function makeGrenadeGraphic() {
+  const [canvas, context] = getCanvas(16, 16);
+
+  context.fillStyle = 'black';
+  context.strokeStyle = 'black';
+
+  context.beginPath();
+  context.arc(8, 8, 8, 0, Math.PI * 2, false);
+  context.fill();
+  context.beginPath();
+  context.moveTo(8, 8);
+  context.lineTo(16, 16);
+  context.stroke();
+  context.strokeStyle = 'yellow';
+
+  context.beginPath();
+  context.moveTo(15, 15);
+  context.lineTo(16, 16);
   context.stroke();
 
   return canvas;
@@ -139,11 +162,45 @@ function makeSpikesGraphic() {
   return canvas;
 }
 
+function makeGunIconGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 3;
+  const tileY = 4;
+
+  spritesLoaded.then(() => {
+    // context.translate(0, 32);
+    // context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
+function makeBombIconGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 3;
+  const tileY = 3;
+
+  spritesLoaded.then(() => {
+    // context.translate(0, 32);
+    // context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
 export const playerGraphic = makePlayerGraphic();
 export const fallbackGraphic = makeFallbackGraphic();
-export const goblinGraphic = makeGoblinGraphic();
+export const goblinGraphic = makeGoblinGraphic('orange');
+export const goblinArcherGraphic = makeGoblinGraphic('red');
 export const heartGraphic = makeHeartGraphic();
 export const mcguffinGraphic = makeMcguffinGraphic();
 export const projectileGraphic = makeProjectileGraphic();
 export const exitGraphic = makeExitGraphic();
 export const spikesGraphic = makeSpikesGraphic();
+export const grenadeGraphic = makeGrenadeGraphic();
+export const gunIconGraphic = makeGunIconGraphic();
+export const bombIconGraphic = makeBombIconGraphic();

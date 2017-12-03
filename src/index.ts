@@ -1,9 +1,9 @@
-import { drawBanner } from './banner';
+import { drawBanner, drawTopBanner } from './banner';
 import controls, { Key } from './controls';
 import { canvas, context } from './display';
 import Entity, { Facing } from './entity';
-import { entities, level, paused, player, reset, togglePause } from './gameState';
-import { spritesLoaded } from './graphic';
+import { entities, level, paused, player, reset, togglePause, weaponsAvailable, WeaponType } from './gameState';
+import { bombIconGraphic, gunIconGraphic, spritesLoaded } from './graphic';
 import { levelsLoaded } from './levels';
 import { V2, v2 } from './maths';
 
@@ -95,19 +95,27 @@ function loop() {
   for (const entity of entities) {
     context.save();
     context.translate(entity.pos[0], entity.pos[1]);
-    if (entity.killable /*&& entity.health < entity.maxHealth*/ && entity !== player) {
+    if (entity.killable && entity.health < entity.maxHealth && entity !== player) {
       context.fillStyle = 'red';
       context.fillRect(-12, entity.radius + 4, 24 * (entity.health / entity.maxHealth), 5);
     }
     if (entity.facing === Facing.Left) {
       context.scale(-1, 1);
     }
-    context.drawImage(entity.graphic, -entity.graphic.width / 2, -entity.graphic.height / 2);
+    if (entity.isExplosion) {
+      context.fillStyle = 'yellow';
+      context.beginPath();
+      context.arc(0, 0, entity.radius, 0, Math.PI * 2);
+      context.fill();
+    } else {
+      context.drawImage(entity.graphic, -entity.graphic.width / 2, -entity.graphic.height / 2);
+    }
     context.restore();
   }
 
   context.restore();
 
+  drawTopBanner(context, dT);
   drawBanner(context, dT);
 
   drawGUI();
@@ -131,6 +139,28 @@ function drawGUI() {
   context.textBaseline = 'top';
   context.fillText(String(player.ammo), 130, 15);
   context.strokeText(String(player.ammo), 130, 15);
+
+  let weaponCounter = 0;
+
+  if (weaponsAvailable.includes(WeaponType.Gun)) {
+    context.fillText('1', 20, 56 + (50 * weaponCounter));
+    context.drawImage(gunIconGraphic, 45, 50 + (50 * weaponCounter));
+    if (player.weaponType === WeaponType.Gun) {
+      context.strokeStyle = 'white';
+      context.strokeRect(15, 45 + (50 * weaponCounter), 67, 42);
+    }
+    weaponCounter++;
+  }
+
+  if (weaponsAvailable.includes(WeaponType.Grenade)) {
+    context.fillText('2', 20, 56 + (50 * weaponCounter));
+    context.drawImage(bombIconGraphic, 45, 50 + (50 * weaponCounter));
+    if (player.weaponType === WeaponType.Grenade) {
+      context.strokeStyle = 'white';
+      context.strokeRect(15, 45 + (50 * weaponCounter), 67, 42);
+    }
+    weaponCounter++;
+  }
 }
 
 function init() {
@@ -138,4 +168,11 @@ function init() {
   requestAnimationFrame(loop);
 }
 
-Promise.all([levelsLoaded, spritesLoaded]).then(init);
+const loadingImage = new Image();
+loadingImage.src = 'assets/loading.png';
+loadingImage.onload = () => {
+  context.drawImage(loadingImage, 0, 0, canvas.width / 2, canvas.height / 2);
+  setTimeout(() => {
+    Promise.all([levelsLoaded, spritesLoaded]).then(init);
+  }, 3000);
+};

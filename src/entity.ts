@@ -2,10 +2,12 @@ import { addBanner } from './banner';
 import { intersect } from './collision';
 import controls, { Key } from './controls';
 import { EntityType } from './entityType';
-import { addDebuff, debuffs, entities, level, nextLevel, player, reset, togglePause } from './gameState';
 import {
-  exitGraphic, fallbackGraphic, goblinGraphic, heartGraphic, mcguffinGraphic,
-  playerGraphic, projectileGraphic, spikesGraphic,
+  addDebuff, debuffs, entities, level, nextLevel, player, reset, togglePause, weaponsAvailable, WeaponType,
+} from './gameState';
+import {
+  bombIconGraphic, exitGraphic, fallbackGraphic, goblinArcherGraphic, goblinGraphic,
+  grenadeGraphic, heartGraphic, mcguffinGraphic, playerGraphic, projectileGraphic, spikesGraphic,
 } from './graphic';
 import { V2, v2 } from './maths';
 import sound from './sound';
@@ -16,6 +18,7 @@ const EPSILON = 0.00000001;
 enum Faction {
   Foe,
   Friend,
+  Neither,
 }
 
 export enum Facing {
@@ -51,6 +54,9 @@ export default class Entity {
   pacer = false;
   destroyOnUse = false;
   collectable = false;
+  undead = false;
+  explodes = false;
+  isExplosion = false; // Fairly desperate stuff at this hour
 
   collisionResponse = CollisionResponse.Deflect;
   health = 0;
@@ -61,7 +67,7 @@ export default class Entity {
   faction = Faction.Foe;
   // TODO: Weapons should be their own thing, not part of entity
   weaponTimer = 0;
-  weaponRange = 500;
+  weaponRange = 200;
   radius = 8;
   target: Entity | null = null;
   onhit: ((e: Entity) => void) | null;
@@ -71,6 +77,8 @@ export default class Entity {
   ammoMax = 0;
   ammoRegen = 1;
   ammoTimer = 0;
+  weaponType: WeaponType = WeaponType.Gun;
+  explosionTimer = 0;
 
   graphic = fallbackGraphic;
 
@@ -91,6 +99,17 @@ export default class Entity {
         break;
       }
 
+      case EntityType.GrenadePickup: {
+        this.graphic = bombIconGraphic;
+        this.faction = Faction.Friend;
+        this.radius = 16;
+        this.onhit = (other: Entity) => {
+          weaponsAvailable.push(WeaponType.Grenade);
+          this.die();
+        };
+        break;
+      }
+
       case EntityType.Goblin: {
         this.killable = true;
         this.maxHealth = 20;
@@ -104,6 +123,23 @@ export default class Entity {
         break;
       }
 
+      case EntityType.GoblinArcher: {
+        this.killable = true;
+        this.maxHealth = 40;
+        this.graphic = goblinArcherGraphic;
+        this.speed = 1000;
+        // this.solid = true;
+        this.pacer = true;
+        this.harmful = true;
+        this.damage = 100;
+        this.collisionResponse = CollisionResponse.TurnAround;
+        this.target = player;
+        this.ammo = 100;
+        this.ammoMax = 100;
+        this.ammoRegen = 0.1;
+        break;
+      }
+
       case EntityType.Spikes: {
         this.graphic = spikesGraphic;
         this.harmful = true;
@@ -114,8 +150,8 @@ export default class Entity {
 
       case EntityType.Projectile: {
         this.graphic = projectileGraphic;
-        this.facing = options.facing || Facing.Left;
         this.faction = options.faction || Faction.Foe;
+        this.facing = options.facing || Facing.Left;
         switch (this.facing) {
           case Facing.Left: {
             v2.set(this.v, -1000, 0);
@@ -150,6 +186,46 @@ export default class Entity {
         this.radius = 16;
         this.collectable = true;
         this.health = 10;
+        break;
+      }
+
+      case EntityType.Grenade: {
+        this.graphic = grenadeGraphic;
+        this.radius = 8;
+        this.faction = options.faction || Faction.Foe;
+        this.explosionTimer = 2;
+        this.explodes = true;
+        this.facing = options.facing || Facing.Left;
+        switch (this.facing) {
+          case Facing.Left: {
+            v2.set(this.v, -400, 300);
+            break;
+          }
+          case Facing.Right: {
+            v2.set(this.v, 400, 300);
+            break;
+          }
+          case Facing.Up: {
+            v2.set(this.v, 0, 500);
+            break;
+          }
+          case Facing.Down: {
+            v2.set(this.v, 0, -500);
+            break;
+          }
+        }
+        break;
+      }
+
+      case EntityType.Explosion: {
+        this.radius = 0;
+        this.damage = 100;
+        this.faction = Faction.Neither;
+        this.harmful = true;
+        this.isExplosion = true;
+        this.flying = true;
+        this.limitedLife = true;
+        this.lifespan = 1;
         break;
       }
 
@@ -213,7 +289,29 @@ export default class Entity {
     }
 
     if (this.health <= 0 && this.killable) {
-      return this.die();
+      if (debuffs.undead && this !== player) {
+        this.undead = true;
+        this.speed = 0;
+        this.health = 10;
+      } else {
+        return this.die();
+      }
+    }
+
+    if (this.explodes) {
+      this.explosionTimer -= dT;
+      if (this.explosionTimer < 0) {
+        entities.add(new Entity(EntityType.Explosion, this.pos));
+        this.die();
+      }
+    }
+
+    if (this.isExplosion) {
+      this.radius = Math.pow(1 - this.lifespan, 0.5) * 50;
+    }
+
+    if (this.undead && this.speed < 1000) {
+      this.speed += 100 * dT;
     }
 
     if (this.ammo === this.ammoMax) {
@@ -248,13 +346,17 @@ export default class Entity {
         }
 
         v2.normalise(tVec, tVec);
-        // v2.clone(this.dV, tVec);
+        v2.clone(this.dV, tVec);
       }
     }
 
     v2.mul(this.dV, this.dV, this.speed);
+
     if (debuffs.fastMonsters && this.faction === Faction.Foe) {
       v2.mul(this.dV, this.dV, 2);
+    }
+    if (this.undead) {
+      v2.mul(this.dV, this.dV, 0.5);
     }
 
     if (!this.onGround && !this.flying) {
@@ -320,8 +422,13 @@ export default class Entity {
 
   shoot(facing: Facing) {
     if (this.weaponTimer === 0 && this.ammo > 0) {
-      entities.add(new Entity(EntityType.Projectile, this.pos, { facing, faction: this.faction }));
-      this.ammo--;
+      if (this.weaponType === WeaponType.Gun) {
+        entities.add(new Entity(EntityType.Projectile, this.pos, { facing, faction: this.faction }));
+        this.ammo--;
+      } else if (this.weaponType === WeaponType.Grenade) {
+        entities.add(new Entity(EntityType.Grenade, this.pos, { facing, faction: this.faction }));
+        this.ammo -= 10;
+      }
       sound.play('pop');
       this.weaponTimer += 0.1;
     }
@@ -354,6 +461,13 @@ export default class Entity {
     }
     if (controls.isPressed(Key.Right)) {
       this.shoot(Facing.Right);
+    }
+
+    if (weaponsAvailable.includes(WeaponType.Gun) && controls.isPressed(Key.One)) {
+      this.weaponType = WeaponType.Gun;
+    }
+    if (weaponsAvailable.includes(WeaponType.Grenade) && controls.isPressed(Key.Two)) {
+      this.weaponType = WeaponType.Grenade;
     }
 
     v2.normalise(this.dV, this.dV);
