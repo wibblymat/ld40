@@ -1,3 +1,5 @@
+import { canvas } from './display';
+
 export enum Key {
   Space = 32,
 
@@ -26,6 +28,9 @@ const controls = {
 
 function keydown(e: KeyboardEvent) {
   keystate[e.keyCode] = true;
+  if (!document.webkitFullscreenElement) {
+    canvas.webkitRequestFullscreen();
+  }
 }
 
 function keyup(e: KeyboardEvent) {
