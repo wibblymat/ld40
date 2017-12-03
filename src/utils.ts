@@ -36,3 +36,7 @@ export function hsvToRgb(h: number, s: number, v: number) {
       return [v, p, q];
   }
 }
+
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}

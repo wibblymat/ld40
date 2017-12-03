@@ -1,6 +1,7 @@
 import { intersect } from './collision';
 import Entity from './entity';
 import { V2, v2 } from './maths';
+import { IObjectLayerData, ITileData, ITileLayerData } from './tileData';
 import { hsvToRgb } from './utils';
 
 const TILE_SIZE = 32;
@@ -21,23 +22,40 @@ for (let i = 0; i < 16; i++) {
 }
 
 export default class WorldMap {
-  private tiles: number[][];
+  objectLayers: IObjectLayerData[] = [];
+  width: number;
+  height: number;
 
-  constructor() {
-    this.tiles = [
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    ];
+  private data: ITileData;
+  private tileLayers: ITileLayerData[] = [];
 
-    for (const row of this.tiles) {
-      for (let x = 0; x < row.length; x++) {
-        if (row[x] !== 0) {
-          row[x] = Math.floor(Math.random() * 15) + 1;
+  constructor(data: ITileData) {
+    this.data = data;
+
+    for (const layer of data.layers) {
+      if (layer.type === 'tilelayer') {
+        const tileLayer = layer as ITileLayerData;
+        this.tileLayers.push(tileLayer);
+        this.width = tileLayer.width;
+        this.height = tileLayer.height;
+        for (let i = 0; i < tileLayer.data.length; i++) {
+          if (tileLayer.data[i] !== 0) {
+            tileLayer.data[i] = Math.floor(Math.random() * 15) + 1;
+          }
         }
+      } else if (layer.type === 'objectgroup') {
+        const objectLayer = layer as IObjectLayerData;
+        this.objectLayers.push(objectLayer);
       }
     }
+  }
+
+  getTileIndex(x: number, y: number) {
+    return ((this.height - y - 1) * this.width) + x;
+  }
+
+  translateObjectPosition(x: number, y: number): V2 {
+    return [x, (this.height * TILE_SIZE) + 31 - y];
   }
 
   willCollide(entity: Entity, tileX: number, tileY: number) {
@@ -72,10 +90,9 @@ export default class WorldMap {
     const normal = [0, 0];
     let bestTime = 1;
 
-    for (let y = minTileY; y <= maxTileY && y < this.tiles.length; y++) {
-      const row = this.tiles[y];
-      for (let x = minTileX; x <= maxTileX && x < row.length; x++) {
-        if (row[x] !== 0) {
+    for (let y = minTileY; y <= maxTileY && y < this.height; y++) {
+      for (let x = minTileX; x <= maxTileX && x < this.width; x++) {
+        if (this.tileLayers[0].data[this.getTileIndex(x, y)] !== 0) {
           if (this.willCollide(entity, x, y)) {
             const tileNormal = [0, 0];
             let tileTime = 1;
@@ -129,10 +146,9 @@ export default class WorldMap {
    * The context should be pre-transformed to the correct viewport and orientation
    */
   draw(context: CanvasRenderingContext2D) {
-    for (let y = 0; y < this.tiles.length; y++) {
-      const row = this.tiles[y];
-      for (let x = 0; x < row.length; x++) {
-        const tile = row[x];
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const tile = this.tileLayers[0].data[this.getTileIndex(x, y)];
         if (tile !== 0) {
           context.fillStyle = tileColors[tile].light;
           context.fillRect((x * TILE_SIZE), (y * TILE_SIZE), TILE_SIZE, TILE_SIZE);

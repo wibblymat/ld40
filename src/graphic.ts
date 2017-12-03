@@ -1,28 +1,133 @@
 import { Facing } from './entity';
 import { V2 } from './maths';
+import { err } from './utils';
 
-export class Graphic {
-  width: number = 32;
-  height: number = 32;
+const spritesheet: HTMLImageElement = new Image();
 
-  constructor(public file: string, public x: number, public y: number) {
-  }
+export const spritesLoaded = new Promise((resolve, reject) => {
+  spritesheet.onload = resolve;
+  spritesheet.onerror = reject;
+});
 
-  draw(ctx: CanvasRenderingContext2D, pos: V2, dim: V2, facing: Facing) {
-    // TODO: Debug draw for now
-    ctx.save();
-    ctx.translate(pos[0], pos[1]);
-    ctx.fillStyle = 'orange';
-    ctx.strokeStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(0, 0, dim[0] / 2, 0, Math.PI * 2, false);
-    ctx.fill();
-    ctx.stroke();
-    if (facing === Facing.Left) {
-      ctx.fillRect(-(5 * dim[0] / 8), -dim[0] / 4, dim[0] / 8, dim[0] / 2);
-    } else {
-      ctx.fillRect(dim[0] / 2, -dim[0] / 4, dim[0] / 8, dim[0] / 2);
-    }
-    ctx.restore();
-  }
+spritesheet.src = 'assets/sprites.png';
+
+function getCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const canvas = document.createElement('canvas');
+
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext('2d') || err();
+
+  return [canvas, context];
 }
+
+function makeGoblinGraphic(): HTMLCanvasElement {
+  const [canvas, context] = getCanvas(20, 20);
+
+  context.translate(10, 10);
+  context.fillStyle = 'orange';
+  context.strokeStyle = 'white';
+  context.beginPath();
+  context.arc(0, 0, 8, 0, Math.PI * 2, false);
+  context.fill();
+  context.stroke();
+  context.fillRect(8, -4, 2, 8);
+
+  return canvas;
+}
+
+function makePlayerGraphic(): HTMLCanvasElement {
+  const [canvas, context] = getCanvas(16, 16);
+
+  context.fillStyle = 'purple';
+  context.strokeStyle = 'white';
+  context.fillRect(0, 0, 16, 16);
+  context.strokeRect(0, 0, 16, 16);
+
+  return canvas;
+}
+
+function makeFallbackGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  context.fillStyle = 'blue';
+  context.fillRect(0, 0, 32, 32);
+
+  context.strokeStyle = 'white';
+  context.beginPath();
+  context.moveTo(0, 0);
+  context.lineTo(31, 31);
+  context.moveTo(0, 31);
+  context.lineTo(31, 0);
+  context.stroke();
+
+  return canvas;
+}
+
+function makeProjectileGraphic() {
+  const [canvas, context] = getCanvas(10, 10);
+
+  context.fillStyle = 'yellow';
+  context.strokeStyle = 'black';
+
+  context.beginPath();
+  context.arc(4, 4, 4, 0, Math.PI * 2, false);
+  context.fill();
+  context.stroke();
+
+  return canvas;
+}
+
+function makeHeartGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 1;
+  const tileY = 4;
+
+  spritesLoaded.then(() => {
+    context.translate(0, 32);
+    context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
+function makeMcguffinGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 0;
+  const tileY = 4;
+
+  spritesLoaded.then(() => {
+    context.translate(0, 32);
+    context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
+function makeExitGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 1;
+  const tileY = 2;
+
+  spritesLoaded.then(() => {
+    context.translate(0, 32);
+    context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
+export const playerGraphic = makePlayerGraphic();
+export const fallbackGraphic = makeFallbackGraphic();
+export const goblinGraphic = makeGoblinGraphic();
+export const heartGraphic = makeHeartGraphic();
+export const mcguffinGraphic = makeMcguffinGraphic();
+export const projectileGraphic = makeProjectileGraphic();
+export const exitGraphic = makeExitGraphic();

@@ -1,4 +1,6 @@
 export enum Key {
+  Space = 32,
+
   Left = 37,
   Up = 38,
   Right = 39,
@@ -6,6 +8,7 @@ export enum Key {
 
   A = 65,
   D = 68,
+  P = 80,
   S = 83,
   W = 87,
 }

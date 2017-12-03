@@ -6,7 +6,8 @@ export const context = canvas.getContext('2d') || err();
 canvas.width = 1920;
 canvas.height = 1080;
 const targetAspect = canvas.width / canvas.height;
-context.imageSmoothingEnabled = false;
+// context.imageSmoothingEnabled = false;
+context.scale(2, 2);
 
 function resize() {
   const aspect = window.innerWidth / window.innerHeight;
@@ -21,5 +22,8 @@ function resize() {
 
 resize();
 window.addEventListener('resize', resize);
+window.addEventListener('click', () => {
+  canvas.webkitRequestFullscreen();
+});
 
 document.body.appendChild(canvas);

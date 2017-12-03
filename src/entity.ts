@@ -1,23 +1,17 @@
+import { addBanner } from './banner';
 import { intersect } from './collision';
 import controls, { Key } from './controls';
-import { entities, newLevel, player, worldMap } from './gameState';
-import { Graphic } from './graphic';
-// import { canvas, context } from './display';
+import { EntityType } from './entityType';
+import { entities, level, nextLevel, player, reset, togglePause } from './gameState';
+import {
+  exitGraphic, fallbackGraphic, goblinGraphic, heartGraphic, mcguffinGraphic,
+  playerGraphic, projectileGraphic,
+} from './graphic';
 import { V2, v2 } from './maths';
-
-const playerGraphic = new Graphic('sprites.png', 0, 2);
-const fallbackGraphic = new Graphic('sprites.png', 1, 2);
+import sound from './sound';
 
 const g = [0, -980];
 const EPSILON = 0.00000001;
-
-export enum EntityType {
-  Player,
-  Heart,
-  Mcguffin,
-  Goblin,
-  Projectile,
-}
 
 enum Faction {
   Foe,
@@ -27,6 +21,8 @@ enum Faction {
 export enum Facing {
   Left,
   Right,
+  Up,
+  Down,
 }
 
 enum CollisionResponse {
@@ -68,8 +64,15 @@ export default class Entity {
   weaponRange = 500;
   radius = 8;
   target: Entity | null = null;
+  onhit: ((e: Entity) => void) | null;
+  mcguffins: any[] = []; // TODO: Make these better typed
+  cooldown: number = 0; // Generic, used for lots of things
+  ammo = 0;
+  ammoMax = 0;
+  ammoRegen = 1;
+  ammoTimer = 0;
 
-  graphic: Graphic = fallbackGraphic;
+  graphic = fallbackGraphic;
 
   constructor(type: EntityType, pos: V2, options: { [key: string]: any } = {}) {
     v2.clone(this.pos, pos);
@@ -83,13 +86,15 @@ export default class Entity {
         this.speed = 2000;
         // this.solid = true;
         this.faction = Faction.Friend;
+        this.ammoMax = 50;
+        this.ammo = 50;
         break;
       }
 
       case EntityType.Goblin: {
         this.killable = true;
         this.maxHealth = 20;
-        // this.graphic =
+        this.graphic = goblinGraphic;
         this.speed = 1000;
         // this.solid = true;
         this.pacer = true;
@@ -100,12 +105,26 @@ export default class Entity {
       }
 
       case EntityType.Projectile: {
-        // this.graphic =
+        this.graphic = projectileGraphic;
         this.facing = options.facing || Facing.Left;
         this.faction = options.faction || Faction.Foe;
-        v2.set(this.v, 1000, 0);
-        if (this.facing === Facing.Left) {
-          v2.invert(this.v, this.v);
+        switch (this.facing) {
+          case Facing.Left: {
+            v2.set(this.v, -1000, 0);
+            break;
+          }
+          case Facing.Right: {
+            v2.set(this.v, 1000, 0);
+            break;
+          }
+          case Facing.Up: {
+            v2.set(this.v, 0, 1000);
+            break;
+          }
+          case Facing.Down: {
+            v2.set(this.v, 0, -1000);
+            break;
+          }
         }
         this.radius = 4;
         this.limitedLife = true;
@@ -118,11 +137,44 @@ export default class Entity {
       }
 
       case EntityType.Heart: {
-        // this.graphic =
+        this.graphic = heartGraphic;
         this.faction = Faction.Friend;
-        this.radius = 6;
+        this.radius = 16;
         this.collectable = true;
         this.health = 10;
+        break;
+      }
+
+      case EntityType.Exit: {
+        this.graphic = exitGraphic;
+        this.faction = Faction.Friend;
+        this.radius = 16;
+        this.flying = true;
+        this.onhit = () => {
+          if (level.mcguffinCount === player.mcguffins.length) {
+            nextLevel();
+          } else {
+            if (this.cooldown === 0) {
+              addBanner('Collect more Lava Lamps', 20);
+              sound.play('click2');
+              this.cooldown += 0.5;
+            }
+          }
+        };
+        break;
+      }
+
+      case EntityType.Mcguffin: {
+        this.graphic = mcguffinGraphic;
+        this.faction = Faction.Friend;
+        this.radius = 16;
+        this.onhit = (entity: Entity) => {
+          // TODO: show something to the player about the new effect
+          // TODO: Create some effects
+          entity.mcguffins.push({});
+          sound.play('click');
+          this.die();
+        };
         break;
       }
     }
@@ -139,16 +191,31 @@ export default class Entity {
       this.weaponTimer = Math.max(0, this.weaponTimer - dT);
     }
 
+    if (this.cooldown > 0) {
+      this.cooldown = Math.max(0, this.cooldown - dT);
+    }
+
     if (this.limitedLife) {
       this.lifespan -= dT;
     }
 
     if (this.lifespan < 0) {
-      this.die();
+      return this.die();
     }
 
     if (this.health <= 0 && this.killable) {
-      this.die();
+      return this.die();
+    }
+
+    if (this.ammo === this.ammoMax) {
+      this.ammoTimer = Math.max(0, this.ammoTimer);
+    } else if (this.ammoTimer > 0) {
+      this.ammoTimer -= dT;
+    }
+
+    if (this.ammo < this.ammoMax && this.ammoTimer <= 0) {
+      this.ammo++;
+      this.ammoTimer += this.ammoRegen;
     }
 
     if (this.controlled) {
@@ -165,7 +232,7 @@ export default class Entity {
         this.facing = this.target.pos[0] < this.pos[0] ? Facing.Left : Facing.Right;
 
         if (this.weaponRange >= v2.length(tVec)) {
-          this.shoot();
+          this.shoot(this.facing);
         }
 
         v2.normalise(tVec, tVec);
@@ -202,7 +269,7 @@ export default class Entity {
     if (this.collidable) {
       let attempts = 4;
       while (attempts--) {
-        const collision = worldMap.findCollision(this);
+        const collision = level.map.findCollision(this);
         if (collision.time < 1 && !v2.isZero(collision.normal)) {
           if (collision.normal[1] > 0.5) {
             this.onGround = true;
@@ -236,16 +303,18 @@ export default class Entity {
     v2.add(this.pos, this.pos, this.dP);
   }
 
-  shoot() {
-    if (this.weaponTimer === 0) {
-      entities.add(new Entity(EntityType.Projectile, this.pos, { facing: this.facing, faction: this.faction }));
+  shoot(facing: Facing) {
+    if (this.weaponTimer === 0 && this.ammo > 0) {
+      entities.add(new Entity(EntityType.Projectile, this.pos, { facing, faction: this.faction }));
+      this.ammo--;
+      sound.play('pop');
       this.weaponTimer += 0.1;
     }
   }
 
   playerControl(dT: number) {
     v2.set(this.dV, 0, 0);
-    if (controls.isPressed(Key.W) && this.onGround) {
+    if (controls.isPressed(Key.Space) && this.onGround) {
       this.v[1] += 600;
     }
     // if (controls.isPressed(Key.S)) {
@@ -258,8 +327,17 @@ export default class Entity {
       this.dV[0] = 1;
     }
 
+    if (controls.isPressed(Key.Up)) {
+      this.shoot(Facing.Up);
+    }
     if (controls.isPressed(Key.Down)) {
-      this.shoot();
+      this.shoot(Facing.Down);
+    }
+    if (controls.isPressed(Key.Left)) {
+      this.shoot(Facing.Left);
+    }
+    if (controls.isPressed(Key.Right)) {
+      this.shoot(Facing.Right);
     }
 
     v2.normalise(this.dV, this.dV);
@@ -329,19 +407,28 @@ export default class Entity {
       return;
     }
 
+    if (this.onhit && other === player) {
+      this.onhit(other);
+    }
+
     if (this.killable && other.harmful && this.faction !== other.faction) {
       if (other.destroyOnUse) {
         this.health -= other.damage;
+        sound.play('urgh');
         other.die();
       } else {
-        this.health -= other.damage * dT;
+        if (other.cooldown === 0) {
+          this.health -= other.damage * 0.25;
+          other.cooldown += 0.25;
+          sound.play('urgh');
+        }
       }
     }
 
     if (this.collectable && this.faction === other.faction) {
       if (this.health > 0 && other.health < other.maxHealth) {
         other.health = Math.min(other.maxHealth, other.health + this.health);
-        this.die();
+        return this.die();
       }
     }
   }
@@ -349,8 +436,12 @@ export default class Entity {
   die() {
     entities.delete(this);
 
+    if (this.killable) {
+      sound.play('squelch1');
+    }
+
     if (this === player) {
-      newLevel();
+      reset();
     }
   }
 }
