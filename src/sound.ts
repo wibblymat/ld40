@@ -8,6 +8,7 @@ const soundAssets: string[] = [
   'pop',
   'squelch1',
   'urgh',
+  'whoop',
 ];
 
 const sounds: Map<string, AudioBuffer> = new Map();

@@ -49,7 +49,7 @@ export function drawBanner(context: CanvasRenderingContext2D, dT: number) {
 
   const width = context.measureText(currentBanner).width;
 
-  context.fillText(currentBanner, context.canvas.width / 4 - width / 2, context.canvas.height / 4);
-  context.strokeText(currentBanner, context.canvas.width / 4 - width / 2, context.canvas.height / 4);
+  context.fillText(currentBanner, context.canvas.width / 4 - width / 2, context.canvas.height / 4 - 100);
+  context.strokeText(currentBanner, context.canvas.width / 4 - width / 2, context.canvas.height / 4 - 100);
   context.restore();
 }

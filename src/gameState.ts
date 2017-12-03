@@ -31,7 +31,45 @@ export function nextLevel() {
 }
 
 export function addDebuff() {
+  const available: string[] = [];
 
+  if (!debuffs.doubleDamage) {
+    available.push('doubleDamage');
+  }
+  if (!debuffs.noHeal) {
+    available.push('noHeal');
+  }
+  if (!debuffs.fastMonsters) {
+    available.push('fastMonsters');
+  }
+  if (!debuffs.slowRegen) {
+    available.push('slowRegen');
+  }
+
+  const choice = Math.floor(Math.random() * available.length);
+
+  switch (available[choice]) {
+    case 'doubleDamage': {
+      debuffs.doubleDamage = true;
+      addBanner('Curse: Enemy Damage X2', 50);
+      break;
+    }
+    case 'fastMonsters': {
+      debuffs.fastMonsters = true;
+      addBanner('Curse: Fast enemies', 50);
+      break;
+    }
+    case 'noHeal': {
+      debuffs.noHeal = true;
+      addBanner('Curse: No healing', 50);
+      break;
+    }
+    case 'slowRegen': {
+      debuffs.slowRegen = true;
+      addBanner('Curse: Ammo regen 50%', 50);
+      break;
+    }
+  }
 }
 
 export function changeLevel(id: number) {
@@ -40,6 +78,9 @@ export function changeLevel(id: number) {
     addBanner('A,  D to move', 30);
     addBanner('Space to jump', 30);
     addBanner('Arrow keys shoot', 30);
+    addBanner('Collect cursed lava lamps to open the door', 30);
+    addBanner('Lava lamp curses last the rest of the level', 30);
+    addBanner('(or until you die!)', 30);
   }
 
   debuffs.doubleDamage = false;

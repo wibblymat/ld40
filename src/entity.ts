@@ -2,10 +2,10 @@ import { addBanner } from './banner';
 import { intersect } from './collision';
 import controls, { Key } from './controls';
 import { EntityType } from './entityType';
-import { entities, level, nextLevel, player, reset, togglePause } from './gameState';
+import { addDebuff, debuffs, entities, level, nextLevel, player, reset, togglePause } from './gameState';
 import {
   exitGraphic, fallbackGraphic, goblinGraphic, heartGraphic, mcguffinGraphic,
-  playerGraphic, projectileGraphic,
+  playerGraphic, projectileGraphic, spikesGraphic,
 } from './graphic';
 import { V2, v2 } from './maths';
 import sound from './sound';
@@ -104,6 +104,14 @@ export default class Entity {
         break;
       }
 
+      case EntityType.Spikes: {
+        this.graphic = spikesGraphic;
+        this.harmful = true;
+        this.damage = 100;
+        this.flying = true;
+        break;
+      }
+
       case EntityType.Projectile: {
         this.graphic = projectileGraphic;
         this.facing = options.facing || Facing.Left;
@@ -172,6 +180,7 @@ export default class Entity {
           // TODO: show something to the player about the new effect
           // TODO: Create some effects
           entity.mcguffins.push({});
+          addDebuff();
           sound.play('click');
           this.die();
         };
@@ -216,6 +225,9 @@ export default class Entity {
     if (this.ammo < this.ammoMax && this.ammoTimer <= 0) {
       this.ammo++;
       this.ammoTimer += this.ammoRegen;
+      if (debuffs.slowRegen) {
+        this.ammoTimer += this.ammoRegen;
+      }
     }
 
     if (this.controlled) {
@@ -241,6 +253,9 @@ export default class Entity {
     }
 
     v2.mul(this.dV, this.dV, this.speed);
+    if (debuffs.fastMonsters && this.faction === Faction.Foe) {
+      v2.mul(this.dV, this.dV, 2);
+    }
 
     if (!this.onGround && !this.flying) {
       v2.mul(this.dV, this.dV, 0.2);
@@ -316,6 +331,7 @@ export default class Entity {
     v2.set(this.dV, 0, 0);
     if (controls.isPressed(Key.Space) && this.onGround) {
       this.v[1] += 600;
+      sound.play('whoop');
     }
     // if (controls.isPressed(Key.S)) {
     //   this.dV[1] = -1;
@@ -412,13 +428,17 @@ export default class Entity {
     }
 
     if (this.killable && other.harmful && this.faction !== other.faction) {
+      let damage = other.damage;
+      if (this === player && debuffs.doubleDamage) {
+        damage *= 2;
+      }
       if (other.destroyOnUse) {
-        this.health -= other.damage;
+        this.health -= damage;
         sound.play('urgh');
         other.die();
       } else {
         if (other.cooldown === 0) {
-          this.health -= other.damage * 0.25;
+          this.health -= damage * 0.25;
           other.cooldown += 0.25;
           sound.play('urgh');
         }
@@ -427,7 +447,9 @@ export default class Entity {
 
     if (this.collectable && this.faction === other.faction) {
       if (this.health > 0 && other.health < other.maxHealth) {
-        other.health = Math.min(other.maxHealth, other.health + this.health);
+        if (!debuffs.noHeal) {
+          other.health = Math.min(other.maxHealth, other.health + this.health);
+        }
         return this.die();
       }
     }

@@ -29,6 +29,7 @@ enum MapObjectType {
   Creature3 = 99,
   Mcguffin = 129,
   Heart = 130,
+  Spikes = 131,
 }
 
 const ObjectToEntityMap: {[key: number]: EntityType} = {
@@ -36,6 +37,7 @@ const ObjectToEntityMap: {[key: number]: EntityType} = {
   [MapObjectType.Creature1]: EntityType.Goblin,
   [MapObjectType.Heart]: EntityType.Heart,
   [MapObjectType.Mcguffin]: EntityType.Mcguffin,
+  [MapObjectType.Spikes]: EntityType.Spikes,
 };
 
 export class Level {

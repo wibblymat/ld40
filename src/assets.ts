@@ -11,6 +11,7 @@ const other = [
   'pop.wav',
   'squelch1.wav',
   'urgh.wav',
+  'whoop.wav',
 ];
 
 type Asset = HTMLImageElement | HTMLAudioElement | ArrayBuffer;

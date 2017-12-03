@@ -124,6 +124,21 @@ function makeExitGraphic() {
   return canvas;
 }
 
+function makeSpikesGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 2;
+  const tileY = 4;
+
+  spritesLoaded.then(() => {
+    context.translate(0, 32);
+    context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
 export const playerGraphic = makePlayerGraphic();
 export const fallbackGraphic = makeFallbackGraphic();
 export const goblinGraphic = makeGoblinGraphic();
@@ -131,3 +146,4 @@ export const heartGraphic = makeHeartGraphic();
 export const mcguffinGraphic = makeMcguffinGraphic();
 export const projectileGraphic = makeProjectileGraphic();
 export const exitGraphic = makeExitGraphic();
+export const spikesGraphic = makeSpikesGraphic();

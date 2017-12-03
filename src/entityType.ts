@@ -5,4 +5,5 @@ export enum EntityType {
   Goblin,
   Projectile,
   Exit,
+  Spikes,
 }
