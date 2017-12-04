@@ -62,9 +62,9 @@ export default {
     }),
     glsl(),
     text(),
-    // babili({
-    //   comments: false,
-    // }),
+    babili({
+      comments: false,
+    }),
     buildInfo(),
   ],
   dest: 'public/app.min.js',
