@@ -108,7 +108,7 @@ export default class Entity {
         this.speed = 500;
         this.radius = 8;
         this.harmful = true;
-        this.damage = 10;
+        this.damage = 100;
         this.flying = true;
         this.floater = true;
         this.collisionResponse = CollisionResponse.Bounce;
