@@ -10,4 +10,5 @@ export enum EntityType {
   Grenade,
   Explosion,
   GrenadePickup,
+  Floater,
 }

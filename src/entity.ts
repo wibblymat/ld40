@@ -6,8 +6,8 @@ import {
   addDebuff, debuffs, entities, level, nextLevel, player, reset, togglePause, weaponsAvailable, WeaponType,
 } from './gameState';
 import {
-  bombIconGraphic, exitGraphic, fallbackGraphic, goblinArcherGraphic, goblinGraphic,
-  grenadeGraphic, heartGraphic, mcguffinGraphic, playerGraphic, projectileGraphic, spikesGraphic,
+  bombIconGraphic, exitGraphic, fallbackGraphic, floaterGraphic, goblinArcherGraphic, goblinGraphic, grenadeGraphic,
+  heartGraphic, mcguffinGraphic, playerGraphic, projectileGraphic, spikesGraphic,
 } from './graphic';
 import { V2, v2 } from './maths';
 import sound from './sound';
@@ -57,6 +57,7 @@ export default class Entity {
   undead = false;
   explodes = false;
   isExplosion = false; // Fairly desperate stuff at this hour
+  floater = false;
 
   collisionResponse = CollisionResponse.Deflect;
   health = 0;
@@ -96,6 +97,22 @@ export default class Entity {
         this.faction = Faction.Friend;
         this.ammoMax = 50;
         this.ammo = 50;
+        break;
+      }
+
+      case EntityType.Floater: {
+        this.killable = true;
+        this.maxHealth = 10;
+        this.health = 10;
+        this.graphic = floaterGraphic;
+        this.speed = 500;
+        this.radius = 8;
+        this.harmful = true;
+        this.damage = 10;
+        this.flying = true;
+        this.floater = true;
+        this.collisionResponse = CollisionResponse.Bounce;
+        this.target = player;
         break;
       }
 
@@ -341,11 +358,22 @@ export default class Entity {
 
         this.facing = this.target.pos[0] < this.pos[0] ? Facing.Left : Facing.Right;
 
-        if (this.weaponRange >= v2.length(tVec)) {
-          this.shoot(this.facing);
+        if (!this.floater) {
+          if (this.weaponRange >= v2.length(tVec)) {
+            this.shoot(this.facing);
+          }
         }
 
         v2.normalise(tVec, tVec);
+
+        if (this.floater) {
+          v2.add(tVec, tVec, [Math.random() * 0.1, Math.random() * 0.1]);
+          v2.normalise(tVec, tVec);
+          if (v2.distance(this.pos, player.pos) > 300) {
+            v2.mul(tVec, tVec, 0.05);
+          }
+        }
+
         v2.clone(this.dV, tVec);
       }
     }

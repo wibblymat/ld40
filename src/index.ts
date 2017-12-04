@@ -41,14 +41,10 @@ import { V2, v2 } from './maths';
 // Just for the constructor
 
 // URGENT TODOS:
-// - mcguffin effects
-// - title screen?
 // - more levels
-// - spikes!
 // - more creature types - flying? jumping?
 // - make creatures not walk off edges
 // - Better death effect (deadtimer for fade)
-// - 'go fullscreen' icon?
 
 let lastFrameStart: number = 0;
 let pauseHeld = false;

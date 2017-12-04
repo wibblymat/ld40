@@ -162,6 +162,21 @@ function makeSpikesGraphic() {
   return canvas;
 }
 
+function makeFloaterGraphic() {
+  const [canvas, context] = getCanvas(32, 32);
+
+  const tileX = 0;
+  const tileY = 3;
+
+  spritesLoaded.then(() => {
+    context.translate(0, 32);
+    context.scale(1, -1);
+    context.drawImage(spritesheet, tileX * 32, tileY * 32, 32, 32, 0, 0, 32, 32);
+  });
+
+  return canvas;
+}
+
 function makeGunIconGraphic() {
   const [canvas, context] = getCanvas(32, 32);
 
@@ -204,3 +219,4 @@ export const spikesGraphic = makeSpikesGraphic();
 export const grenadeGraphic = makeGrenadeGraphic();
 export const gunIconGraphic = makeGunIconGraphic();
 export const bombIconGraphic = makeBombIconGraphic();
+export const floaterGraphic = makeFloaterGraphic();

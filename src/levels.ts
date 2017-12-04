@@ -3,7 +3,7 @@ import { EntityType } from './entityType';
 import { V2, v2 } from './maths';
 import WorldMap from './worldMap';
 
-const levelFiles = ['level1.json', 'level2.json', 'level3.json'];
+const levelFiles = ['level1.json', 'level2.json', 'level3.json', 'level4.json'];
 const levels: Level[] = [];
 
 export const levelsLoaded = Promise.all(levelFiles.map(loadLevel));
@@ -37,6 +37,7 @@ const ObjectToEntityMap: {[key: number]: EntityType} = {
   [MapObjectType.Exit]: EntityType.Exit,
   [MapObjectType.Creature1]: EntityType.Goblin,
   [MapObjectType.Creature2]: EntityType.GoblinArcher,
+  [MapObjectType.Creature3]: EntityType.Floater,
   [MapObjectType.Heart]: EntityType.Heart,
   [MapObjectType.Mcguffin]: EntityType.Mcguffin,
   [MapObjectType.Spikes]: EntityType.Spikes,
