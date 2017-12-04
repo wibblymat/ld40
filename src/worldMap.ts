@@ -40,7 +40,8 @@ export default class WorldMap {
         this.height = tileLayer.height;
         for (let i = 0; i < tileLayer.data.length; i++) {
           if (tileLayer.data[i] !== 0) {
-            tileLayer.data[i] = Math.floor(Math.random() * 15) + 1;
+            // tileLayer.data[i] = Math.floor(Math.random() * 15) + 1;
+            tileLayer.data[i] = (i % 15) + 1;
           }
         }
       } else if (layer.type === 'objectgroup') {
