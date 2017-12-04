@@ -122,6 +122,7 @@ export default class Entity {
         this.radius = 16;
         this.onhit = (other: Entity) => {
           weaponsAvailable.push(WeaponType.Grenade);
+          addBanner('New Weapon: Grenades', 40);
           this.die();
         };
         break;
@@ -202,7 +203,7 @@ export default class Entity {
         this.faction = Faction.Friend;
         this.radius = 16;
         this.collectable = true;
-        this.health = 10;
+        this.health = 30;
         break;
       }
 
