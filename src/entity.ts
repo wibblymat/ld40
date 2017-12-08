@@ -394,7 +394,7 @@ export default class Entity {
 
     // Friction
     const fricAcc = v2.create();
-    v2.mul(fricAcc, this.v, this.onGround ? -8 : -1);
+    v2.mul(fricAcc, this.v, this.onGround ? -12 : -1);
     v2.add(this.dV, this.dV, fricAcc);
 
     if (!this.flying) {
@@ -423,6 +423,7 @@ export default class Entity {
 
           if (attempts === 0) {
             v2.set(this.dP, 0, 0);
+            console.log('Too many collisions, giving up');
           } else {
             this.updateMove(collision.normal, collision.time);
           }

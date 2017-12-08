@@ -67,6 +67,16 @@ function loop() {
     pauseHeld = false;
   }
 
+  if (!paused) {
+    for (const entity of entities) {
+      entity.update(dT);
+    }
+
+    if (player.pos[1] < 0) {
+      player.die();
+    }
+  }
+
   context.save();
 
   context.fillStyle = 'rgb(48, 48, 128)';
@@ -77,16 +87,6 @@ function loop() {
   context.translate(-player.pos[0], -player.pos[1]);
 
   level.map.draw(context);
-
-  if (!paused) {
-    for (const entity of entities) {
-      entity.update(dT);
-    }
-
-    if (player.pos[1] < 0) {
-      player.die();
-    }
-  }
 
   for (const entity of entities) {
     context.save();

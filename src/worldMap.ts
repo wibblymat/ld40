@@ -131,8 +131,8 @@ export default class WorldMap {
             // TODO: Collision system crappiness! Can bump off the top corner of
             // a tile even though you can only access the top.
 
-            if (tileTime >= 0 && tileTime <= bestTime) {
-              bestTime = tileTime;
+            if (tileTime <= bestTime) {
+              bestTime = Math.max(tileTime, 0);
               v2.clone(normal, tileNormal);
             }
           }
